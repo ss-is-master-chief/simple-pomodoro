@@ -58,10 +58,8 @@ class Pomodoro:
         print(f"""🕑 Default working session length: {self.work_duration} mins""")
         print(f"""🕑 Default break session length: {self.break_duration} mins""")
 
-        self.command = input("> ")
+        self.command = input("🍅 > ")
         self.execute_command()
-        # self.restart = input("☕ Start? [y/n]: ").lower()
-        # self.check_restart()
 
     def countdown(self, t, session_type):
         if session_type == "work_session":
@@ -116,22 +114,6 @@ class Pomodoro:
     def check_log_exist(self):
         return os.path.exists("session_log.json")
 
-    # def check_restart(self):
-    #     while self.restart == "y":
-    #         self.work_session()
-    #         self.break_session()
-    #         self.restart = input("☕ Start? [y/n]: ").lower()
-    #     if self.restart == "n":
-    #         exit_app = input("⬅️  Exit? [y/n]: ")
-    #         if exit_app == "y":
-    #             if self.count > 0:
-    #                 self.get_session_stats()
-    #                 self.log_session()
-    #             sys.exit()
-    #         else:
-    #             self.restart = input("Start? [y/n]: ").lower()
-    #             self.check_restart()
-
     def log_session(self):
         with open("session_log.json", "r") as f:
             dic = json.load(f)
@@ -163,7 +145,7 @@ class Pomodoro:
         if self.command == "start":
             self.work_session()
             self.break_session()
-            self.command = input("> ")
+            self.command = input("🍅 > ")
             self.execute_command()
         elif self.command == "exit":
             if self.count > 0:
@@ -184,7 +166,7 @@ class Pomodoro:
         - 'exit': close program
             """
                 )
-                self.command = input("> ")
+                self.command = input("🍅 > ")
                 self.execute_command()
             else:
                 if dic["work_duration"] != None:
@@ -199,7 +181,7 @@ class Pomodoro:
                 print(f"""🕑 Default break session length: {self.break_duration} mins""")
                 self.work_session()
                 self.break_session()
-                self.command = input("> ")
+                self.command = input("🍅 > ")
                 self.execute_command()
 
 
