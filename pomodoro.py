@@ -33,7 +33,7 @@ class Pomodoro:
         self.work_duration = 25
         self.break_duration = 5
         self.session_name = "PomoSession"
-        self.last_session_id = -1
+        self.last_session_id = 0
         self.session_id = []
         self.session_names = []
         self.start_times = []
@@ -136,12 +136,13 @@ class Pomodoro:
         with open("session_log.json", "r") as f:
             dic = json.load(f)
 
+            if dic["session_id"] != []:
+                self.last_session_id = max(dic["session_id"])
+
             dic["session_names"] += self.session_names
             dic["start_times"] += self.start_times
             dic["end_times"] += self.end_times
 
-            if self.last_session_id != 0:
-                self.last_session_id = max(dic["session_id"])
             dic["session_id"] += [
                 val + self.last_session_id for val in range(1, self.count + 1)
             ]
