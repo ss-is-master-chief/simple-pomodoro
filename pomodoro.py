@@ -24,34 +24,15 @@ BANNER = """
                                 
 """
 
-parser = argparse.ArgumentParser(
-    description="Simple Pomodoro Timer for procrastinators"
-)
-
-parser.add_argument(
-    "-s",
-    default="PomoSession",
-    type=str,
-    help="the name of session (default: PomoSession)",
-)
-
-parser.add_argument(
-    "-sd", default=25, type=int, help="duration of session in mins (default: 25 mins)"
-)
-
-parser.add_argument(
-    "-bd", default=5, type=int, help="duration of break in mins (default: 5 mins)"
-)
-
-args = parser.parse_args()
-
 
 class Pomodoro:
     def __init__(self):
         self.count = 0
         self.restart = "y"
-        self.work_duration = args.sd
-        self.break_duration = args.bd
+        self.command_regex = r"""(start\s{0,}(?P<work_duration>\d+))?\s{0,}(break\s{0,}(?P<break_duration>\d+))?\s{0,}(session\s{0,}(?P<session_name>\w+))?"""
+        self.work_duration = 25
+        self.break_duration = 5
+        self.session_name = "PomoSession"
         self.last_session_id = -1
         self.session_id = []
         self.session_names = []
@@ -77,15 +58,16 @@ class Pomodoro:
         print(f"""🕑 Default working session length: {self.work_duration} mins""")
         print(f"""🕑 Default break session length: {self.break_duration} mins""")
 
-        # self.command = input("> ")
-        self.restart = input("☕ Start? [y/n]: ").lower()
-        self.check_restart()
+        self.command = input("> ")
+        self.execute_command()
+        # self.restart = input("☕ Start? [y/n]: ").lower()
+        # self.check_restart()
 
     def countdown(self, t, session_type):
         if session_type == "work_session":
-            prefix = f"""⏳ Working Session {self.count+1}: """
+            prefix = f"""⏳ [{self.session_name}] Working Session {self.count+1}: """
         else:
-            prefix = f"""⏳ Break Session {self.count+1}: """
+            prefix = f"""⏳ [{self.session_name}] Break Session {self.count+1}: """
 
         t = t * 60
 
@@ -103,12 +85,17 @@ class Pomodoro:
         self.start_times.append(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.countdown(self.work_duration, "work_session")
         self.end_times.append(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        print(f"""✅ Working Session {self.count+1}: {self.work_duration} mins""")
+        self.session_names.append(self.session_name)
+        print(
+            f"""✅ [{self.session_name}] Working Session {self.count+1}: {self.work_duration} mins"""
+        )
         os.system(f"""say "Session {self.count+1} is complete, take a break." -r 250""")
 
     def break_session(self):
         self.countdown(self.break_duration, "break_session")
-        print(f"""✅ Break Session {self.count+1}: {self.break_duration} mins""")
+        print(
+            f"""✅ [{self.session_name}] Break Session {self.count+1}: {self.break_duration} mins"""
+        )
         os.system(f"""say "Let's get back to work" -r 250""")
         self.count += 1
 
@@ -129,27 +116,27 @@ class Pomodoro:
     def check_log_exist(self):
         return os.path.exists("session_log.json")
 
-    def check_restart(self):
-        while self.restart == "y":
-            self.work_session()
-            self.break_session()
-            self.restart = input("☕ Start? [y/n]: ").lower()
-        if self.restart == "n":
-            exit_app = input("⬅️  Exit? [y/n]: ")
-            if exit_app == "y":
-                if self.count > 0:
-                    self.get_session_stats()
-                    self.log_session()
-                sys.exit()
-            else:
-                self.restart = input("Start? [y/n]: ").lower()
-                self.check_restart()
+    # def check_restart(self):
+    #     while self.restart == "y":
+    #         self.work_session()
+    #         self.break_session()
+    #         self.restart = input("☕ Start? [y/n]: ").lower()
+    #     if self.restart == "n":
+    #         exit_app = input("⬅️  Exit? [y/n]: ")
+    #         if exit_app == "y":
+    #             if self.count > 0:
+    #                 self.get_session_stats()
+    #                 self.log_session()
+    #             sys.exit()
+    #         else:
+    #             self.restart = input("Start? [y/n]: ").lower()
+    #             self.check_restart()
 
     def log_session(self):
         with open("session_log.json", "r") as f:
             dic = json.load(f)
 
-            dic["session_names"] += [args.s] * self.count
+            dic["session_names"] += self.session_names
             dic["start_times"] += self.start_times
             dic["end_times"] += self.end_times
 
@@ -170,6 +157,49 @@ class Pomodoro:
         print("Stopping session")
 
         sys.exit(0)
+
+    def execute_command(self):
+        if self.command == "start":
+            self.work_session()
+            self.break_session()
+            self.command = input("> ")
+            self.execute_command()
+        elif self.command == "exit":
+            if self.count > 0:
+                self.get_session_stats()
+                self.log_session()
+            sys.exit()
+        else:
+            dic = list(re.finditer(self.command_regex, self.command))[0].groupdict()
+            if list(dic.values()) == [None, None, None]:
+                print(
+                    f"""🤔 Didn't get you. Here are a few examples:
+    Command Format:
+        - 'start': start timer with default value
+        - 'start <work_duration>': update default session duration and start
+        - 'break <break_duration>': update default break duration and start
+        - 'session <session_name>': update session name and start
+        - 'start <work_duration> break <break_duration>': update session & break and start
+        - 'exit': close program
+            """
+                )
+                self.command = input("> ")
+                self.execute_command()
+            else:
+                if dic["work_duration"] != None:
+                    self.work_duration = int(dic["work_duration"])
+                if dic["break_duration"] != None:
+                    self.break_duration = int(dic["break_duration"])
+                if dic["session_name"] != None:
+                    self.session_name = dic["session_name"]
+                print(
+                    f"""🕑 Default working session length: {self.work_duration} mins"""
+                )
+                print(f"""🕑 Default break session length: {self.break_duration} mins""")
+                self.work_session()
+                self.break_session()
+                self.command = input("> ")
+                self.execute_command()
 
 
 if __name__ == "__main__":
