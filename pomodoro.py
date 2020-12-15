@@ -13,6 +13,7 @@ import os
 import re
 import sys
 import json
+import signal
 
 BANNER = """
   ____                           _                 
@@ -56,6 +57,8 @@ class Pomodoro:
         self.session_names = []
         self.start_times = []
         self.end_times = []
+
+        signal.signal(signal.SIGINT, self.signal_handler)
 
         if self.check_log_exist() == False:
             placeholder_dict = {
@@ -158,6 +161,15 @@ class Pomodoro:
 
         with open("session_log.json", "w") as f:
             json.dump(dic, f, indent=4)
+
+    def signal_handler(self, sig, frame):
+        if self.count > 0:
+            self.get_session_stats()
+            self.log_session()
+
+        print("Stopping session")
+
+        sys.exit(0)
 
 
 if __name__ == "__main__":
